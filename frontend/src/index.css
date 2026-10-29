@@ -1,0 +1,68 @@
+@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&display=swap');
+
+@import "tailwindcss";
+@config "../tailwind.config.js";
+
+:root {
+  font-family: 'Lexend', sans-serif;
+}
+
+body {
+  @apply bg-[#FAFAFA] text-[#1A1A1A] min-h-screen antialiased;
+  margin: 0;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-200 rounded-full hover:bg-gray-300;
+}
+
+.premium-card {
+  @apply bg-white border border-gray-100 rounded-2xl;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
+}
+
+.glass-header {
+  @apply fixed top-0 left-0 right-0 z-50 h-20 bg-white/80 backdrop-blur-xl border-b border-gray-100 px-6 flex items-center justify-between;
+}
+
+.chat-container {
+  @apply max-w-4xl mx-auto w-full pt-28 pb-32 px-4;
+}
+
+.bot-bubble {
+  @apply bg-white border border-gray-100 shadow-sm rounded-2xl rounded-tl-none p-5 text-[15px] leading-relaxed;
+}
+
+.user-bubble {
+  @apply bg-[#6750A4] text-white rounded-2xl rounded-tr-none p-5 text-[15px] leading-relaxed shadow-md;
+}
+
+.input-wrapper {
+  @apply fixed bottom-8 left-1/2 -translate-x-1/2 w-[90%] max-w-2xl z-50;
+}
+
+.input-field {
+  @apply w-full bg-white border border-gray-200 rounded-2xl px-6 py-4 transition-all focus:outline-none focus:ring-2 focus:ring-[#6750A4]/10 focus:border-[#6750A4];
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+}
+
+.btn-send {
+  @apply absolute right-3 top-1/2 -translate-y-1/2 bg-[#6750A4] text-white p-2.5 rounded-xl hover:bg-[#5A4590] transition-colors;
+}
+
+.brand-accent {
+  @apply bg-[#FBBF24] rounded-lg p-2 flex items-center justify-center;
+}
+
+.multimodal-container {
+  @apply mt-4 rounded-xl overflow-hidden border border-gray-100 shadow-sm;
+}
