@@ -618,3 +618,5 @@ Built for SOS 42 Technical Assessment • January 2026
 <p align="center">
   <strong>⭐ Star this repo if you found it useful!</strong>
 </p>
+#   A I - P o w e r e d - D o c u m e n t - I n t e l l i g e n c e - S y s t e m  
+ 
