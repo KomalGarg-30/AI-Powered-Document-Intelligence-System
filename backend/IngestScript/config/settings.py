@@ -36,7 +36,7 @@ class Settings(BaseSettings):
         description="Groq API key for chat/RAG",
     )
     groq_model: str = Field(
-        default="llama-3.3-70b-versatile",
+        default="openai/gpt-oss-120b",
         description="Groq model to use for chat",
     )
 

@@ -89,7 +89,7 @@ class GraphNodes:
         qdrant_host: str = "localhost",
         qdrant_port: int = 6333,
         collection_name: str = "pdf_documents",
-        model_name: str = "llama-3.3-70b-versatile",
+        model_name: str = "openai/gpt-oss-120b",
     ) -> None:
         """
         Initialize graph nodes with required clients.
@@ -574,7 +574,7 @@ def build_graph(
     qdrant_host: str = "localhost",
     qdrant_port: int = 6333,
     collection_name: str = "pdf_documents",
-    model_name: str = "llama-3.3-70b-versatile",
+    model_name: str = "openai/gpt-oss-120b",
 ) -> StateGraph:
     """
     Build the compiled LangGraph state machine.
@@ -670,7 +670,7 @@ def create_rag_graph_from_settings():
 def build_graph_with_vector_store(
     groq_api_key: str,
     vector_store,
-    model_name: str = "llama-3.3-70b-versatile",
+    model_name: str = "openai/gpt-oss-120b",
 ):
     """
     Build the RAG graph using an EXISTING VectorStore instance.

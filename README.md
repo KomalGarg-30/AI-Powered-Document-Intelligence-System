@@ -276,7 +276,7 @@ The system follows a **cognitive architecture** with self-correction capabilitie
 | **PDF Processing** | IBM Docling | Document structure extraction |
 | **OCR** | RapidOCR | Text recognition for images |
 | **Vision LLM** | Gemini 2.0 Flash | Figure/chart transcription |
-| **Chat LLM** | Groq (Llama 3.3 70B) | Fast inference, answer generation |
+| **Chat LLM** | Groq (OpenAI GPT-OSS 120B) | Fast inference, answer generation |
 | **Embeddings** | Sentence Transformers | all-MiniLM-L6-v2 (384 dims) |
 | **Vector DB** | Qdrant | In-memory vector storage |
 | **Orchestration** | LangGraph | Agentic state machine |
@@ -332,6 +332,7 @@ cd ..
 cp .env.example .env
 
 # Edit .env with your API keys
+# Set GROQ_MODEL to a model available to your Groq account
 ```
 
 ---

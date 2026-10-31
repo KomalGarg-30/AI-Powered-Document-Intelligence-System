@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Send, ChevronRight, User, Upload, FileText, Loader2, Image as ImageIcon, Plus, CheckCircle2, XCircle, Trash2 } from 'lucide-react'
+import { Send, User, Upload, FileText, Loader2, Image as ImageIcon, Plus, CheckCircle2, XCircle, Trash2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import ReactMarkdown from 'react-markdown'
 import logo from './assets/logo.png'
@@ -16,19 +16,10 @@ const Header = () => (
             <span className="font-bold text-lg tracking-tight">SOS 42</span>
         </div>
 
-        <div className="hidden md:flex items-center gap-8">
-            <a href="#" className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors">Academy</a>
-            <a href="#" className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors">Features</a>
-            <a href="#" className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors">Pricing</a>
-        </div>
-
-        <button className="bg-[#6750A4] text-white px-5 py-2.5 rounded-xl font-semibold text-sm hover:bg-[#5A4590] transition-all flex items-center gap-2">
-            Get on WhatsApp <ChevronRight size={16} />
-        </button>
     </header>
 )
 
-const IngestionProgress = ({ filename }) => {
+const IngestionProgress = ({ filename, onFinished }) => {
     const [status, setStatus] = useState("queued");
     const [message, setMessage] = useState("Starting upload...");
     const [progress, setProgress] = useState(0);
@@ -56,8 +47,10 @@ const IngestionProgress = ({ filename }) => {
                 } else if (data.status === "completed") {
                     setProgress(100);
                     clearInterval(pollInterval);
+                    onFinished();
                 } else if (data.status === "error") {
                     clearInterval(pollInterval);
+                    onFinished();
                 }
             } catch (e) {
                 console.error("Polling error", e);
@@ -66,7 +59,7 @@ const IngestionProgress = ({ filename }) => {
 
         pollInterval = setInterval(checkStatus, 1000);
         return () => clearInterval(pollInterval);
-    }, [filename]);
+    }, [filename, onFinished]);
 
     // Calculate Estimated Time (5s per item heuristic)
     const itemsLeft = stats.total - stats.current;
@@ -143,7 +136,7 @@ const IngestionProgress = ({ filename }) => {
     );
 };
 
-const Message = ({ isBot, text, documents, ingestionFile }) => (
+const Message = ({ isBot, text, documents, ingestionFile, onIngestionFinished }) => (
     <motion.div
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
@@ -158,7 +151,7 @@ const Message = ({ isBot, text, documents, ingestionFile }) => (
 
         <div className={`max-w-[80%] sm:max-w-[70%] ${isBot ? 'bot-bubble' : 'user-bubble'}`}>
             {ingestionFile ? (
-                <IngestionProgress filename={ingestionFile} />
+                <IngestionProgress filename={ingestionFile} onFinished={onIngestionFinished} />
             ) : (
                 <div className="prose prose-sm max-w-none">
                     <ReactMarkdown>{text}</ReactMarkdown>
@@ -214,6 +207,7 @@ export default function App() {
     const [input, setInput] = useState("")
     const [isThinking, setIsThinking] = useState(false)
     const [isUploading, setIsUploading] = useState(false)
+    const [isIngestionPending, setIsIngestionPending] = useState(false)
     const [isResetting, setIsResetting] = useState(false)
     const scrollRef = useRef(null)
     const fileInputRef = useRef(null)
@@ -223,7 +217,7 @@ export default function App() {
     }, [messages, isThinking])
 
     const handleSend = async () => {
-        if (!input.trim()) return
+        if (!input.trim() || isIngestionPending) return
 
         const userMsg = { text: input, isBot: false }
         setMessages(prev => [...prev, userMsg])
@@ -303,6 +297,7 @@ export default function App() {
         if (!file) return;
 
         setIsUploading(true);
+        setIsIngestionPending(true);
         const formData = new FormData();
         formData.append("file", file);
 
@@ -328,14 +323,11 @@ export default function App() {
             const data = await response.json();
             console.log("Ingest server response:", data);
 
-            // Success: IngestionProgress component will handle polling updates
-            setMessages(prev => [...prev, {
-                text: `✅ **Ingestion complete!** File "${file.name}" has been processed.`,
-                isBot: true
-            }]);
+            // IngestionProgress reports completion after the background job finishes.
 
         } catch (error) {
             console.error("Upload error:", error);
+            setIsIngestionPending(false);
             // Surface error in UI
             setMessages(prev => [...prev, {
                 text: `❌ **Upload Error:** ${error.message}`,
@@ -363,7 +355,11 @@ export default function App() {
             <main className="chat-container">
                 <AnimatePresence>
                     {messages.map((m, i) => (
-                        <Message key={i} {...m} />
+                        <Message
+                            key={i}
+                            {...m}
+                            onIngestionFinished={setIsIngestionPending}
+                        />
                     ))}
                     {isThinking && <LoadingState />}
                 </AnimatePresence>
@@ -374,11 +370,11 @@ export default function App() {
                 <div className="relative flex items-center gap-2">
                     <button
                         onClick={triggerUpload}
-                        disabled={isUploading}
+                        disabled={isUploading || isIngestionPending}
                         className="w-10 h-10 rounded-full flex items-center justify-center bg-gray-100 text-gray-500 hover:bg-[#F3F0FF] hover:text-[#6750A4] transition-colors flex-shrink-0"
                         title="Upload PDF"
                     >
-                        {isUploading ? <Loader2 size={20} className="animate-spin" /> : <Plus size={24} />}
+                        {isUploading || isIngestionPending ? <Loader2 size={20} className="animate-spin" /> : <Plus size={24} />}
                     </button>
 
                     <button
@@ -395,12 +391,12 @@ export default function App() {
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                            placeholder="Ask a question about your documents..."
+                            placeholder={isIngestionPending ? "Please wait for PDF processing to finish..." : "Ask a question about your documents..."}
                             className="input-field"
                             style={{ paddingLeft: '1rem' }}
-                            disabled={isThinking}
+                            disabled={isThinking || isIngestionPending}
                         />
-                        <button onClick={handleSend} disabled={isThinking} className="btn-send absolute right-2 top-1/2 -translate-y-1/2">
+                        <button onClick={handleSend} disabled={isThinking || isIngestionPending} className="btn-send absolute right-2 top-1/2 -translate-y-1/2">
                             <Send size={20} />
                         </button>
                     </div>
