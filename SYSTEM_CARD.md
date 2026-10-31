@@ -34,7 +34,7 @@ Unlike traditional text-only RAG pipelines, this system **treats visual data as 
 | Text extraction only | Text, tables, AND figures |
 | Static retrieval | Agentic self-correction |
 | Single-pass answers | Query rewriting with retries |
-| No visual understanding | Gemini VLM transcription |
+| No visual understanding | Groq vision transcription |
 | Basic keyword search | Semantic + metadata hybrid search |
 
 ---
@@ -45,7 +45,7 @@ Unlike traditional text-only RAG pipelines, this system **treats visual data as 
 Automatically detects and segments **text**, **tables**, and **figures** using IBM's Docling library. Each element type is processed through specialized pipelines.
 
 ### 🖼️ Visual Transcription
-Uses **Gemini 2.0 Flash** to generate semantic "shadow text" descriptions for charts and diagrams, making them **searchable via natural language queries**.
+Uses Groq's **Qwen vision model** to generate semantic "shadow text" descriptions for charts and diagrams, making them **searchable via natural language queries**.
 
 ### 🧠 Agentic Orchestration
 Implements a **LangGraph state machine** with adaptive routing, self-correction, and query rewriting capabilities. The system can "think" and retry when initial results are unsatisfactory.
@@ -63,7 +63,7 @@ Strict guardrails ensure the system **refuses to answer** when queries fall outs
 | Component | Technology Selected | Rationale |
 |-----------|---------------------|-----------|
 | **Orchestrator** | LangGraph | Enables cyclic graphs for "retry" logic (rewriting queries) rather than linear chains |
-| **Vision Model** | Gemini 2.0 Flash | High-speed, low-cost transcription of tables and figures into Markdown/Text |
+| **Vision Model** | Groq Qwen vision model | Transcription of tables and figures into searchable text |
 | **Inference Engine** | Groq (Llama 3.3 70B) | Ultra-low latency critical for "Chat" experience; GPT-4 class reasoning |
 | **Vector Database** | Qdrant | Efficient payload filtering (metadata) and high-dimensional vectors |
 | **Embeddings** | Sentence Transformers (all-MiniLM-L6-v2) | Fast, high-quality 384-dim embeddings |
@@ -235,9 +235,9 @@ response = groq_llm.generate(prompt, temperature=0.3)
         │               │               │
         ▼               ▼               ▼
    ┌──────────┐    ┌──────────────────────────┐
-   │ Recursive │    │    GEMINI 2.0 FLASH     │
-   │ Character │    │    VLM Transcription    │
-   │ Splitting │    │  (35s delay/rate limit) │
+   │ Recursive │    │    GROQ QWEN VISION     │
+   │ Character │    │    Image Transcription  │
+   │ Splitting │    │  (one request/visual)   │
    │ 1000/200  │    │                         │
    └────┬─────┘    └────────────┬─────────────┘
         │                       │
@@ -290,7 +290,7 @@ Each figure is stored with **rich contextual metadata** for accurate retrieval:
 2. Docling caption extraction
 3. Annotation text from PDF
 4. Regex search for "Figure X:" in markdown
-5. Gemini VLM detailed description (when quota available)
+5. Groq vision model creates a detailed description
 
 ---
 
@@ -367,7 +367,7 @@ I can only answer questions related to the content of the PDF you've uploaded."
 ## 8. Limitations & Future Work
 
 ### Current Limitations
-- **Gemini Rate Limits**: Free tier requires 35s delays between figure transcriptions
+- **Groq Rate Limits**: Visual transcription depends on the configured model and account limits
 - **Single Document**: Currently processes one PDF at a time
 - **No Persistent Storage**: Vector DB resets on restart
 
@@ -391,7 +391,6 @@ Docker (for Qdrant)
 
 # API Keys
 GROQ_API_KEY=...
-GOOGLE_API_KEY=...
 ```
 
 ### Quick Start

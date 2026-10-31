@@ -48,7 +48,7 @@ app.add_middleware(
 # --- Lazy-loaded services (initialized on first use) ---
 _settings = None
 _rag_graph = None
-_transcriber = None
+_vision_transcriber = None
 _vector_store = None
 
 def get_settings():
@@ -79,19 +79,19 @@ def get_rag_graph():
     return _rag_graph
 
 
-def get_transcriber():
-    """Lazy-load the Gemini transcriber on first use."""
-    global _transcriber
-    if _transcriber is None:
-        logger.info("Initializing Gemini transcriber...")
-        from backend.IngestScript.services.gemini_transcriber import GeminiTranscriber
+def get_vision_transcriber():
+    """Lazy-load the Groq vision transcriber on first use."""
+    global _vision_transcriber
+    if _vision_transcriber is None:
+        logger.info("Initializing Groq vision transcriber...")
+        from backend.IngestScript.services.groq_vision_transcriber import GroqVisionTranscriber
         settings = get_settings()
-        _transcriber = GeminiTranscriber(
-            api_key=settings.google_api_key,
-            model_name=settings.gemini_model,
+        _vision_transcriber = GroqVisionTranscriber(
+            api_key=settings.groq_api_key,
+            model_name=settings.groq_vision_model,
         )
-        logger.info("Gemini transcriber initialized")
-    return _transcriber
+        logger.info("Groq vision transcriber initialized")
+    return _vision_transcriber
 
 def get_vector_store():
     """Lazy-load the VectorStore on first use."""
@@ -150,7 +150,7 @@ async def handle_ingestion(file_path: Path, filename: str):
         stats = await process_pdf(
             pdf_path=file_path,
             output_dir=output_dir,
-            transcriber=get_transcriber(),
+            transcriber=get_vision_transcriber(),
             vector_store=get_vector_store(),
             progress_callback=update_progress,
         )

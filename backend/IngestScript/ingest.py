@@ -1,7 +1,7 @@
 """
 Ingest Script - Main CLI entry point.
 
-Parses PDFs, transcribes tables/charts with Gemini, and stores in Qdrant.
+Parses PDFs, transcribes tables/charts with Groq vision, and stores in Qdrant.
 """
 
 import argparse
@@ -14,7 +14,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from backend.IngestScript.config.settings import get_settings
-from backend.IngestScript.services.gemini_transcriber import GeminiTranscriber
+from backend.IngestScript.services.groq_vision_transcriber import GroqVisionTranscriber
 from backend.IngestScript.services.vector_store import VectorStore, DocumentMetadata
 
 # Configure logging
@@ -31,7 +31,7 @@ from typing import Callable, Any
 async def process_pdf(
     pdf_path: Path,
     output_dir: Path,
-    transcriber: GeminiTranscriber,
+    transcriber: GroqVisionTranscriber,
     vector_store: VectorStore,
     progress_callback: Callable[[dict[str, Any]], None] | None = None,
 ) -> dict:
@@ -41,7 +41,7 @@ async def process_pdf(
     Args:
         pdf_path: Path to the PDF file.
         output_dir: Directory for extracted images.
-        transcriber: Gemini transcriber service.
+        transcriber: Groq vision transcription service.
         vector_store: Qdrant vector store service.
         progress_callback: Optional callback for progress updates.
 
@@ -56,7 +56,6 @@ async def process_pdf(
         "text_chunks": 0,
         "tables": 0,
         "figures": 0,
-        "corrections": 0,
         "stored": 0,
     }
 
@@ -133,25 +132,12 @@ async def process_pdf(
             logger.warning(f"Skipping element without image: {element}")
             continue
 
-        # RATE LIMITING: Add delay between Gemini API calls to respect free tier limits
-        # Gemini free tier: 15 requests/min, 1M tokens/min, 1500 requests/day
-        # Using 65 seconds to ensure quota fully resets before each call
-        GEMINI_DELAY_SECONDS = 65
-        if stats["figures"] > 0 or stats["tables"] > 0:  # Delay after first visual element
-            logger.info(f"⏳ Waiting {GEMINI_DELAY_SECONDS}s for Gemini quota to reset...")
-            await asyncio.sleep(GEMINI_DELAY_SECONDS)
-
-
-        # Transcribe with verification
+        # Transcribe each visual element in one vision-model request.
         logger.info(f"Transcribing {element.element_type.value} on page {element.page_number}...")
         
         transcription_text = None
         try:
-            result = await transcriber.transcribe_with_verification(element.image_path)
-            transcription_text = result.verified_transcription
-            if result.was_corrected:
-                stats["corrections"] += 1
-                logger.info("✓ Self-correction applied")
+            transcription_text = await transcriber.transcribe(element.image_path)
         except Exception as e:
             logger.error(f"Transcription failed for {element.image_path}: {e}")
             # FALLBACK: Build RICH metadata from available context
@@ -266,7 +252,7 @@ async def main() -> None:
         settings = get_settings()
     except Exception as e:
         logger.error(f"Failed to load settings: {e}")
-        logger.error("Make sure you have a .env file with GOOGLE_API_KEY set")
+        logger.error("Make sure you have a .env file with GROQ_API_KEY set")
         sys.exit(1)
 
     # Resolve output directory
@@ -279,14 +265,14 @@ async def main() -> None:
     logger.info("=" * 60)
     logger.info(f"PDF Path: {args.pdf_path}")
     logger.info(f"Output Dir: {output_dir}")
-    logger.info(f"Gemini Model: {settings.gemini_model}")
+    logger.info(f"Groq Vision Model: {settings.groq_vision_model}")
     logger.info(f"Qdrant: {settings.qdrant_host}:{settings.qdrant_port}")
     logger.info("=" * 60)
 
     # Initialize services
-    transcriber = GeminiTranscriber(
-        api_key=settings.google_api_key,
-        model_name=settings.gemini_model,
+    transcriber = GroqVisionTranscriber(
+        api_key=settings.groq_api_key,
+        model_name=settings.groq_vision_model,
     )
 
     vector_store = VectorStore(
@@ -317,7 +303,6 @@ async def main() -> None:
     logger.info(f"Total Elements: {stats['total_elements']}")
     logger.info(f"  Tables: {stats['tables']}")
     logger.info(f"  Figures: {stats['figures']}")
-    logger.info(f"Self-Corrections: {stats['corrections']}")
     logger.info(f"Stored in Qdrant: {stats['stored']}")
     logger.info(f"Total in Collection: {vector_store.count_documents()}")
     logger.info("=" * 60)

@@ -20,24 +20,28 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    # Google AI Configuration (for image transcription only)
-    google_api_key: str = Field(
-        ...,
-        description="Google AI API key for Gemini access",
+    # Optional legacy Gemini settings; document ingestion uses Groq vision.
+    google_api_key: str | None = Field(
+        default=None,
+        description="Optional Google AI API key for legacy Gemini integrations",
     )
     gemini_model: str = Field(
         default="gemini-2.0-flash",
-        description="Gemini model to use for transcription",
+        description="Model used by legacy Gemini integrations",
     )
 
-    # Groq Configuration (for chat/RAG)
+    # Groq Configuration (for chat/RAG and visual transcription)
     groq_api_key: str = Field(
         ...,
-        description="Groq API key for chat/RAG",
+        description="Groq API key for chat/RAG and image transcription",
     )
     groq_model: str = Field(
         default="openai/gpt-oss-120b",
         description="Groq model to use for chat",
+    )
+    groq_vision_model: str = Field(
+        default="qwen/qwen3.8-27b",
+        description="Groq vision model to use for image transcription",
     )
 
     # Qdrant Configuration
